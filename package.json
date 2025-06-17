@@ -1,0 +1,25 @@
+{
+  "name": "genai",
+  "version": "1.0.0",
+  "type": "module",
+  "main": "LLM.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Uttam8260/Gen-AI.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/Uttam8260/Gen-AI/issues"
+  },
+  "homepage": "https://github.com/Uttam8260/Gen-AI#readme",
+  "dependencies": {
+    "@google/genai": "^1.5.1",
+    "readline-sync": "^1.4.10"
+  },
+  "devDependencies": {},
+  "description": ""
+}
