@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DSA Instructor AI</title>
+    <style>
+        /* --- ALL YOUR CSS STYLES ARE PERFECT, NO CHANGES NEEDED HERE --- */
+        :root {
+            --primary-bg: #1a1a2e;
+            --secondary-bg: #16213e;
+            --tertiary-bg: #0f3460;
+            --accent-color: #e94560;
+            --text-color: #dcdcdc;
+            --font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html, body { height: 100%; font-family: var(--font-family); background-color: var(--primary-bg); color: var(--text-color); overflow: hidden; }
+        .chat-container { display: flex; flex-direction: column; height: 100vh; max-width: 800px; margin: 0 auto; background-color: var(--secondary-bg); box-shadow: 0 0 20px rgba(0, 0, 0, 0.5); }
+        .chat-header { background-color: var(--tertiary-bg); padding: 15px 20px; text-align: center; border-bottom: 1px solid #0d2a4c; box-shadow: 0 2px 5px rgba(0,0,0,0.2); }
+        .chat-header h1 { font-size: 1.5em; margin: 0; }
+        .chat-header h1 .icon { display: inline-block; transform: translateY(4px); margin-right: 8px; }
+        .chat-messages { flex-grow: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 15px; }
+        .chat-messages::-webkit-scrollbar { width: 8px; }
+        .chat-messages::-webkit-scrollbar-track { background: var(--secondary-bg); }
+        .chat-messages::-webkit-scrollbar-thumb { background-color: var(--tertiary-bg); border-radius: 10px; border: 2px solid var(--secondary-bg); }
+        .message { max-width: 80%; padding: 12px 18px; border-radius: 18px; line-height: 1.5; word-wrap: break-word; }
+        .message.user { background-color: var(--accent-color); color: #fff; align-self: flex-end; border-bottom-right-radius: 4px; }
+        .message.ai { background-color: var(--tertiary-bg); align-self: flex-start; border-bottom-left-radius: 4px; }
+        .message.ai.typing span { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background-color: var(--text-color); margin: 0 2px; animation: bounce 1.4s infinite ease-in-out both; }
+        .message.ai.typing span:nth-child(1) { animation-delay: -0.32s; }
+        .message.ai.typing span:nth-child(2) { animation-delay: -0.16s; }
+        @keyframes bounce { 0%, 80%, 100% { transform: scale(0); } 40% { transform: scale(1.0); } }
+        pre { background-color: #111; color: #f8f8f2; padding: 15px; border-radius: 8px; overflow-x: auto; margin: 10px 0; font-family: 'Courier New', Courier, monospace; font-size: 0.9em; border: 1px solid #444; }
+        code:not(pre > code) { background-color: rgba(255, 255, 255, 0.1); padding: 2px 5px; border-radius: 4px; font-family: 'Courier New', Courier, monospace; }
+        .chat-input-form { display: flex; padding: 15px 20px; border-top: 1px solid #0d2a4c; background-color: var(--tertiary-bg); }
+        .chat-input { flex-grow: 1; padding: 12px 15px; border-radius: 20px; border: 1px solid #2a4a75; background-color: var(--secondary-bg); color: var(--text-color); font-size: 1em; outline: none; transition: border-color 0.3s; }
+        .chat-input:focus { border-color: var(--accent-color); }
+        .send-button { margin-left: 10px; padding: 0 20px; border: none; background-color: var(--accent-color); color: white; border-radius: 20px; font-size: 1em; font-weight: bold; cursor: pointer; transition: background-color 0.3s, transform 0.1s; }
+        .send-button:hover { background-color: #ff6384; }
+        .send-button:active { transform: scale(0.95); }
+        .send-button:disabled { background-color: #555; cursor: not-allowed; }
+    </style>
+</head>
+<body>
+
+    <div class="chat-container">
+        <header class="chat-header">
+            <h1><span class="icon">🎓</span> Ask the DSA Instructor</h1>
+        </header>
+        <div class="chat-messages" id="chat-messages">
+            <div class="message ai">
+                <p>Hello! I am your dedicated Data Structures and Algorithms instructor. Ask me anything about linked lists, trees, sorting algorithms, or any other DSA topic!</p>
+            </div>
+        </div>
+        <form class="chat-input-form" id="chat-form">
+            <input type="text" id="chat-input" class="chat-input" placeholder="e.g., Explain Big O notation..." autocomplete="off">
+            <button type="submit" id="send-btn" class="send-button">Send</button>
+        </form>
+    </div>
+
+    <!-- SCRIPT SECTION (THIS IS THE ONLY PART THAT NEEDS TO BE REPLACED) -->
+    <script>
+        // --- DOM Element References ---
+        const chatForm = document.getElementById('chat-form');
+        const chatInput = document.getElementById('chat-input');
+        const sendButton = document.getElementById('send-btn');
+        const chatMessages = document.getElementById('chat-messages');
+
+        // --- API & Model Configuration ---
+        //  Hardcode your API key here. This is now the ONLY place the key is set.
+        const GEMINI_API_KEY = 'AIzaSyAhVF29dKvyQrZw6GPXc-9bKVXC73UWtJ0'; // Use your actual key
+        const API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent";
+
+        // This is the "System Instruction" from your Node.js code
+        const SYSTEM_INSTRUCTION = {
+            role: "model",
+            parts: [{
+                text: "You are a DSA instructor who is an expert in data structures and algorithms. You help students if they are asking about data structure and if they are asking a question which is not related to data structures and algorithms, you must give an epic, witty, and unforgettable reply that subtly guides them back to the topic. For example, if they ask about the weather, you might say: 'The weather today is cloudy with a 99% chance of unsorted arrays. Let's focus on a sorting algorithm to clear that up, shall we? What would you like to know about Bubble Sort?'"
+            }]
+        };
+        
+        let conversationHistory = [SYSTEM_INSTRUCTION];
+
+        // --- Utility Functions (No changes needed here) ---
+        function simpleMarkdownToHtml(text) {
+            let html = text
+                .replace(/```([\s\S]*?)```/g, (match, code) => `<pre><code>${code.trim()}</code></pre>`)
+                .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                .replace(/`(.*?)`/g, '<code>$1</code>')
+                .replace(/^\s*([*-])\s+(.*)/gm, '<ul><li>$2</li></ul>')
+                .replace(/<\/ul>\n<ul>/g, '');
+            let parts = html.split(/(<pre>[\s\S]*?<\/pre>)/);
+            for(let i = 0; i < parts.length; i++) {
+                if (!parts[i].startsWith('<pre>')) {
+                    parts[i] = parts[i].replace(/\n/g, '<br>');
+                }
+            }
+            return parts.join('');
+        }
+
+        function appendMessage(text, sender) {
+            const messageElement = document.createElement('div');
+            messageElement.classList.add('message', sender);
+            const formattedText = simpleMarkdownToHtml(text);
+            messageElement.innerHTML = formattedText;
+            chatMessages.appendChild(messageElement);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+            return messageElement;
+        }
+
+        function setLoadingState(isLoading) {
+            chatInput.disabled = isLoading;
+            sendButton.disabled = isLoading;
+            let typingIndicator = document.querySelector('.message.ai.typing');
+            if (isLoading) {
+                if (!typingIndicator) {
+                    const indicator = document.createElement('div');
+                    indicator.classList.add('message', 'ai', 'typing');
+                    indicator.innerHTML = '<span></span><span></span><span></span>';
+                    chatMessages.appendChild(indicator);
+                    chatMessages.scrollTop = chatMessages.scrollHeight;
+                }
+            } else {
+                if (typingIndicator) {
+                    typingIndicator.remove();
+                }
+            }
+        }
+        
+        async function getAiResponse() {
+            setLoadingState(true);
+            const requestBody = {
+                "contents": conversationHistory.slice(1),
+                "systemInstruction": SYSTEM_INSTRUCTION.parts[0]
+            };
+
+            try {
+                const response = await fetch(`${API_URL}?key=${GEMINI_API_KEY}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(requestBody),
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    // This will now give a much more helpful error message from Google's API
+                    throw new Error(errorData.error.message || `HTTP error! status: ${response.status}`);
+                }
+
+                const data = await response.json();
+                
+                if (!data.candidates || !data.candidates[0].content) {
+                    // Check for safety ratings blocking the response
+                    if (data.candidates && data.candidates[0].finishReason === "SAFETY") {
+                         throw new Error("Response blocked due to safety settings.");
+                    }
+                    throw new Error("Invalid response format from API.");
+                }
+
+                const aiText = data.candidates[0].content.parts[0].text;
+                conversationHistory.push({ role: "model", parts: [{ text: aiText }] });
+                let typingIndicator = document.querySelector('.message.ai.typing');
+                if (typingIndicator) typingIndicator.remove();
+                appendMessage(aiText, 'ai');
+
+            } catch (error) {
+                console.error("API Error:", error);
+                let typingIndicator = document.querySelector('.message.ai.typing');
+                if (typingIndicator) typingIndicator.remove();
+                appendMessage(`Error: Could not get a response. ${error.message}`, 'ai');
+            } finally {
+                setLoadingState(false);
+                chatInput.focus();
+            }
+        }
+        
+        // --- Event Handlers (No changes needed here) ---
+        chatForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const userInput = chatInput.value.trim();
+
+            if (!userInput) return;
+            // The check is still useful in case the hardcoded key is accidentally deleted
+            if (!GEMINI_API_KEY) {
+                appendMessage("CRITICAL ERROR: The API Key is missing in the code.", 'ai');
+                return;
+            }
+
+            appendMessage(userInput, 'user');
+            conversationHistory.push({ role: "user", parts: [{ text: userInput }] });
+            chatInput.value = '';
+            getAiResponse();
+        });
+
+        // --- Initialization ---
+        // THE PROBLEMATIC CODE BLOCK HAS BEEN REMOVED.
+        // The page will now load and use the hardcoded key directly.
+    </script>
+</body>
+</html>

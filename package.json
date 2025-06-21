@@ -2,7 +2,7 @@
   "name": "genai",
   "version": "1.0.0",
   "type": "module",
-  "main": "LLM.js",
+  "main": "DSA.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
@@ -18,8 +18,11 @@
   "homepage": "https://github.com/Uttam8260/Gen-AI#readme",
   "dependencies": {
     "@google/genai": "^1.5.1",
+    "cors": "^2.8.5",
+    "dotenv": "^16.5.0",
+    "express": "^5.1.0",
     "readline-sync": "^1.4.10"
   },
-  "devDependencies": {},
+  "keywords": [],
   "description": ""
 }
