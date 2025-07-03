@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <title>Calculator</title>
+        <link rel="stylesheet" href="style.css">
+    </head>
+<body>
+    <h1>Calculator</h1>
+    <div id="calculator">
+        <label for="result" class="visually-hidden">Calculator Result</label>
+        <input type="text" id="result" readonly placeholder="0" title="Calculator result">
+    <div>
+        <button onclick="append('1')">1</button>
+        <button onclick="append('2')">2</button>
+        <button onclick="append('3')">3</button>
+        <button onclick="append('+')">+</button>
+    </div>
+    <div>
+        <button onclick="append('4')">4</button>
+        <button onclick="append('5')">5</button>
+        <button onclick="append('6')">6</button>
+        <button onclick="append('-')">-</button>
+    </div>
+    <div>
+        <button onclick="append('7')">7</button>
+        <button onclick="append('8')">8</button>
+        <button onclick="append('9')">9</button>
+        <button onclick="append('*')">*</button>
+    </div>
+    <div>
+        <button onclick="append('0')">0</button>
+        <button onclick="clearResult()">C</button>
+        <button onclick="calculate()">=</button>
+        <button onclick="append('/')">/</button>
+    </div>
+</div>
+<script src="script.js"></script>
+</body>
+</html>
