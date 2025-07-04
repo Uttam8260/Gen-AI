@@ -1,0 +1,1424 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Claude Code Studio</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- JSZip for downloading project files -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary-bg: #0a0a0a;
+            --secondary-bg: #111111;
+            --accent-bg: #1a1a1a;
+            --glass-bg: rgba(255, 255, 255, 0.03);
+            --glass-border: rgba(255, 255, 255, 0.08);
+            --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --secondary-gradient: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            --accent-gradient: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            --success-gradient: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);
+            --text-primary: #ffffff;
+            --text-secondary: #a0a0a0;
+            --text-muted: #666666;
+            --accent-blue: #4facfe;
+            --accent-purple: #667eea;
+            --accent-pink: #f093fb;
+            --accent-green: #00f2fe;
+            --shadow-soft: 0 4px 20px rgba(0, 0, 0, 0.3);
+            --shadow-medium: 0 8px 40px rgba(0, 0, 0, 0.4);
+            --shadow-hard: 0 20px 60px rgba(0, 0, 0, 0.5);
+            --border-radius: 20px;
+            --border-radius-small: 12px;
+            --border-radius-large: 28px;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--primary-bg);
+            color: var(--text-primary);
+            height: 100vh;
+            overflow: hidden;
+            position: relative;
+            font-optical-sizing: auto;
+            font-weight: 400;
+            font-style: normal;
+        }
+
+        /* Animated Background */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: 
+                radial-gradient(circle at 20% 20%, rgba(102, 126, 234, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 80% 80%, rgba(118, 75, 162, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 40% 60%, rgba(240, 147, 251, 0.05) 0%, transparent 50%);
+            pointer-events: none;
+            z-index: 1;
+            animation: backgroundShift 10s ease-in-out infinite;
+        }
+
+        @keyframes backgroundShift {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.8; }
+        }
+
+        /* Floating particles */
+        .particles {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 2;
+        }
+
+        .particle {
+            position: absolute;
+            width: 2px;
+            height: 2px;
+            background: rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            animation: float 6s ease-in-out infinite;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0px) rotate(0deg); opacity: 0.3; }
+            50% { transform: translateY(-20px) rotate(180deg); opacity: 0.8; }
+        }
+
+        .container {
+            position: relative;
+            z-index: 3;
+            width: 100%;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            max-width: 1600px;
+            margin: 0 auto;
+            padding: 24px;
+        }
+
+        .header {
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--glass-border);
+            border-radius: var(--border-radius-large);
+            padding: 32px 40px;
+            margin-bottom: 24px;
+            position: relative;
+            overflow: hidden;
+            box-shadow: var(--shadow-medium);
+        }
+
+        .header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: var(--primary-gradient);
+            animation: shimmer 3s ease-in-out infinite;
+        }
+
+        @keyframes shimmer {
+            0% { transform: translateX(-100%); opacity: 0.5; }
+            50% { transform: translateX(0%); opacity: 1; }
+            100% { transform: translateX(100%); opacity: 0.5; }
+        }
+
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .logo {
+            width: 60px;
+            height: 60px;
+            background: var(--secondary-gradient);
+            border-radius: 18px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 28px;
+            font-weight: 800;
+            color: white;
+            box-shadow: var(--shadow-soft);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .logo::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(45deg, transparent 30%, rgba(255, 255, 255, 0.2) 50%, transparent 70%);
+            animation: logoShine 2s ease-in-out infinite;
+        }
+
+        @keyframes logoShine {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
+        }
+
+        .header-text h1 {
+            font-size: 32px;
+            font-weight: 800;
+            background: var(--primary-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 8px;
+            letter-spacing: -0.5px;
+        }
+
+        .header-text p {
+            color: var(--text-secondary);
+            font-size: 16px;
+            font-weight: 500;
+            letter-spacing: 0.3px;
+        }
+
+        .status-panel {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            background: var(--glass-bg);
+            padding: 16px 24px;
+            border-radius: var(--border-radius-large);
+            border: 1px solid var(--glass-border);
+            box-shadow: var(--shadow-soft);
+        }
+
+        .status-dot {
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            background: #ff4757;
+            position: relative;
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        .status-dot::before {
+            content: '';
+            position: absolute;
+            top: -4px;
+            left: -4px;
+            right: -4px;
+            bottom: -4px;
+            border-radius: 50%;
+            background: inherit;
+            opacity: 0.3;
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        .status-dot.connected {
+            background: #2ed573;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.2); opacity: 0.7; }
+        }
+
+        .status-text {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text-primary);
+            letter-spacing: 0.5px;
+        }
+
+        .chat-container {
+            flex: 1;
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--glass-border);
+            border-radius: var(--border-radius-large);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            box-shadow: var(--shadow-hard);
+        }
+
+        .messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 32px;
+            background: linear-gradient(180deg, rgba(255, 255, 255, 0.02) 0%, transparent 100%);
+            position: relative;
+        }
+
+        .message {
+            margin-bottom: 32px;
+            animation: messageSlide 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+            opacity: 0;
+            animation-fill-mode: forwards;
+        }
+
+        @keyframes messageSlide {
+            from { 
+                opacity: 0; 
+                transform: translateY(30px) scale(0.95); 
+            }
+            to { 
+                opacity: 1; 
+                transform: translateY(0) scale(1); 
+            }
+        }
+
+        .message.user {
+            display: flex;
+            justify-content: flex-end;
+        }
+
+        .message.assistant {
+            display: flex;
+            justify-content: flex-start;
+        }
+
+        .message-bubble {
+            max-width: 80%;
+            padding: 24px 28px;
+            border-radius: var(--border-radius-large);
+            position: relative;
+            word-wrap: break-word;
+            backdrop-filter: blur(10px);
+            transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+            font-size: 16px;
+            line-height: 1.6;
+            letter-spacing: 0.3px;
+        }
+
+        .message-bubble:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-medium);
+        }
+
+        .message.user .message-bubble {
+            background: var(--secondary-gradient);
+            color: white;
+            border-bottom-right-radius: 8px;
+            box-shadow: 0 8px 32px rgba(240, 147, 251, 0.4);
+            font-weight: 500;
+        }
+
+        .message.assistant .message-bubble {
+            background: rgba(255, 255, 255, 0.06);
+            color: var(--text-primary);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-bottom-left-radius: 8px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        }
+
+        .message-meta {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 12px;
+            opacity: 0.8;
+        }
+
+        .avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: var(--accent-gradient);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            font-weight: 700;
+            color: white;
+            box-shadow: var(--shadow-soft);
+        }
+
+        .message-time {
+            font-size: 12px;
+            font-weight: 500;
+            margin-top: 12px;
+            opacity: 0.5;
+            letter-spacing: 0.5px;
+        }
+
+        .file-structure {
+            background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
+            color: #e2e8f0;
+            padding: 24px;
+            border-radius: var(--border-radius);
+            margin: 16px 0;
+            font-family: 'JetBrains Mono', 'Fira Code', monospace;
+            font-size: 14px;
+            line-height: 1.8;
+            overflow-x: auto;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+            position: relative;
+        }
+
+        .file-structure::before {
+            content: 'File Structure';
+            position: absolute;
+            top: 8px;
+            right: 16px;
+            font-size: 10px;
+            color: rgba(255, 255, 255, 0.4);
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .file-structure .folder {
+            color: #ffd700;
+            font-weight: 700;
+        }
+
+        .file-structure .file {
+            color: #7dd3fc;
+            margin-left: 24px;
+        }
+
+        .file-structure .extension {
+            color: #a78bfa;
+        }
+
+        .code-block {
+            background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
+            color: #e2e8f0;
+            padding: 24px;
+            border-radius: var(--border-radius);
+            margin: 16px 0;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 14px;
+            line-height: 1.8;
+            overflow-x: auto;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            position: relative;
+            box-shadow: var(--shadow-soft);
+        }
+
+        .code-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .code-lang {
+            color: #ffd700;
+            font-size: 12px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .input-area {
+            padding: 32px;
+            background: rgba(255, 255, 255, 0.02);
+            border-top: 1px solid rgba(255, 255, 255, 0.08);
+            backdrop-filter: blur(10px);
+        }
+
+        .input-container {
+            position: relative;
+            display: flex;
+            align-items: flex-end;
+            gap: 16px;
+        }
+
+        .input-wrapper {
+            flex: 1;
+            position: relative;
+        }
+
+        #messageInput {
+            width: 100%;
+            min-height: 64px;
+            max-height: 200px;
+            padding: 20px 70px 20px 24px;
+            background: rgba(255, 255, 255, 0.08);
+            backdrop-filter: blur(10px);
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            border-radius: var(--border-radius-large);
+            font-size: 16px;
+            font-family: inherit;
+            color: var(--text-primary);
+            resize: none;
+            outline: none;
+            transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+            font-weight: 500;
+            letter-spacing: 0.3px;
+            line-height: 1.5;
+        }
+
+        #messageInput::placeholder {
+            color: var(--text-muted);
+            font-weight: 500;
+        }
+
+        #messageInput:focus {
+            border-color: rgba(102, 126, 234, 0.5);
+            box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.1);
+            background: rgba(255, 255, 255, 0.12);
+        }
+
+        .send-button {
+            position: absolute;
+            right: 12px;
+            bottom: 12px;
+            width: 48px;
+            height: 48px;
+            border: none;
+            background: var(--primary-gradient);
+            color: white;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+            box-shadow: 0 4px 16px rgba(102, 126, 234, 0.4);
+        }
+
+        .send-button:hover {
+            transform: scale(1.1);
+            box-shadow: 0 6px 24px rgba(102, 126, 234, 0.6);
+        }
+
+        .send-button:active {
+            transform: scale(0.95);
+        }
+
+        .send-button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .api-setup {
+            background: linear-gradient(135deg, rgba(255, 243, 205, 0.1) 0%, rgba(255, 237, 160, 0.1) 100%);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 193, 7, 0.2);
+            border-radius: var(--border-radius);
+            padding: 24px;
+            margin: 20px 0;
+            text-align: center;
+        }
+
+        .api-input {
+            width: 100%;
+            padding: 16px 20px;
+            border: 2px solid rgba(255, 193, 7, 0.2);
+            border-radius: var(--border-radius-small);
+            margin: 16px 0;
+            font-size: 16px;
+            background: rgba(255, 255, 255, 0.05);
+            color: var(--text-primary);
+            transition: all 0.3s ease;
+            font-family: 'JetBrains Mono', monospace;
+            font-weight: 500;
+        }
+
+        .api-input:focus {
+            border-color: var(--accent-blue);
+            box-shadow: 0 0 0 4px rgba(79, 172, 254, 0.1);
+            outline: none;
+        }
+
+        .api-input::placeholder {
+            color: var(--text-muted);
+        }
+
+        .api-button {
+            background: var(--accent-gradient);
+            color: white;
+            border: none;
+            padding: 16px 32px;
+            border-radius: var(--border-radius-small);
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 700;
+            transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+            box-shadow: 0 4px 16px rgba(79, 172, 254, 0.3);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .api-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 24px rgba(79, 172, 254, 0.4);
+        }
+
+        .typing-indicator {
+            display: none;
+            align-items: center;
+            gap: 12px;
+            background: rgba(255, 255, 255, 0.06);
+            border-radius: var(--border-radius-large);
+            padding: 16px 24px;
+            margin: 0px 0px 32px 0px;
+            width: fit-content;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: var(--shadow-soft);
+        }
+
+        .typing-indicator.visible {
+            display: flex;
+        }
+
+        .typing-dots {
+            display: flex;
+            gap: 8px;
+        }
+
+        .typing-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: var(--accent-blue);
+            animation: typing 1.4s infinite;
+        }
+
+        .typing-dot:nth-child(2) {
+            animation-delay: 0.2s;
+        }
+
+        .typing-dot:nth-child(3) {
+            animation-delay: 0.4s;
+        }
+
+        @keyframes typing {
+            0%, 60%, 100% { 
+                transform: translateY(0); 
+                opacity: 0.5;
+            }
+            30% { 
+                transform: translateY(-8px); 
+                opacity: 1;
+            }
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 16px;
+            margin-top: 20px;
+            flex-wrap: wrap;
+        }
+
+        .action-btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: var(--border-radius-small);
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 700;
+            transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            backdrop-filter: blur(10px);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .generate-btn {
+            background: linear-gradient(135deg, #2ed573 0%, #17b978 100%);
+            color: white;
+            box-shadow: 0 4px 16px rgba(46, 213, 115, 0.3);
+        }
+
+        .generate-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 24px rgba(46, 213, 115, 0.4);
+        }
+
+        .copy-btn {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            color: white;
+            box-shadow: 0 4px 16px rgba(79, 172, 254, 0.3);
+        }
+
+        .copy-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 24px rgba(79, 172, 254, 0.4);
+        }
+
+        .download-btn {
+            background: linear-gradient(135deg, #ff6b6b 0%, #ee5a52 100%);
+            color: white;
+            box-shadow: 0 4px 16px rgba(255, 107, 107, 0.3);
+        }
+
+        .download-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 24px rgba(255, 107, 107, 0.4);
+        }
+        
+        #downloadAllBtn {
+             background: var(--primary-gradient);
+             color: white;
+             box-shadow: 0 4px 16px rgba(102, 126, 234, 0.4);
+        }
+
+        #downloadAllBtn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 24px rgba(102, 126, 234, 0.6);
+        }
+
+        /* Toast Notifications */
+        .toast-container {
+            position: fixed;
+            top: 24px;
+            right: 24px;
+            z-index: 1000;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            align-items: flex-end;
+        }
+
+        .toast {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: var(--border-radius);
+            padding: 16px 24px;
+            box-shadow: var(--shadow-medium);
+            transform: translateX(120%);
+            opacity: 0;
+            transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+            font-weight: 600;
+            letter-spacing: 0.3px;
+        }
+
+        .toast.show {
+            transform: translateX(0);
+            opacity: 1;
+        }
+
+        .toast.success {
+            border-left: 4px solid var(--accent-green);
+            color: var(--accent-green);
+        }
+
+        .toast.error {
+            border-left: 4px solid #ff4757;
+            color: #ff4757;
+        }
+
+        /* 
+         * Custom Scrollbar Styling
+         * Note: 'scrollbar-width' and 'scrollbar-color' are for Firefox/future browsers.
+         * The '::-webkit-scrollbar' pseudo-elements provide compatibility for Chrome, Safari, and other WebKit browsers.
+         * Linter warnings about compatibility can be safely ignored as fallbacks are provided.
+        */
+        /* .scrollbar-custom {
+            scrollbar-width: thin;
+            scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
+        } */
+
+        .scrollbar-custom::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .scrollbar-custom::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        .scrollbar-custom::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 4px;
+        }
+
+        .scrollbar-custom::-webkit-scrollbar-thumb:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        /* Loading Animation */
+        .loading-spinner {
+            width: 24px;
+            height: 24px;
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-top: 3px solid white;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .container {
+                padding: 16px;
+            }
+            
+            .header {
+                padding: 24px;
+            }
+            
+            .header-content {
+                flex-direction: column;
+                gap: 20px;
+                text-align: center;
+            }
+            
+            .header-text h1 {
+                font-size: 28px;
+            }
+            
+            .message-bubble {
+                max-width: 95%;
+                padding: 20px;
+            }
+            
+            .input-area {
+                padding: 16px;
+            }
+
+            .input-container {
+                flex-direction: column;
+                gap: 12px;
+            }
+
+            #messageInput {
+                min-height: 56px;
+            }
+
+            .send-button {
+                position: static;
+                width: 100%;
+                border-radius: var(--border-radius-large);
+            }
+            
+            .action-buttons {
+                flex-direction: column;
+            }
+            
+            .action-btn {
+                justify-content: center;
+            }
+        }
+
+        /* Success/Error Messages */
+        .success-message {
+            background: linear-gradient(135deg, rgba(46, 213, 115, 0.1) 0%, rgba(23, 185, 120, 0.1) 100%);
+            border: 1px solid rgba(46, 213, 115, 0.3);
+            border-radius: var(--border-radius);
+            padding: 20px;
+            margin: 16px 0;
+            color: #2ed573;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            letter-spacing: 0.3px;
+        }
+
+        .error-message {
+            background: linear-gradient(135deg, rgba(255, 71, 87, 0.1) 0%, rgba(238, 90, 82, 0.1) 100%);
+            border: 1px solid rgba(255, 71, 87, 0.3);
+            border-radius: var(--border-radius);
+            padding: 20px;
+            margin: 16px 0;
+            color: #ff4757;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            letter-spacing: 0.3px;
+        }
+
+        /* Highlight important text */
+        .highlight {
+            background: linear-gradient(135deg, rgba(102, 126, 234, 0.2) 0%, rgba(118, 75, 162, 0.2) 100%);
+            padding: 2px 8px;
+            border-radius: 6px;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        /* Code syntax highlighting */
+        .keyword { color: #ff79c6; }
+        .string { color: #f1fa8c; }
+        .comment { color: #6272a4; }
+        .number { color: #bd93f9; }
+        .function { color: #50fa7b; }
+        .tag { color: #ff79c6; }
+        .attr-name { color: #50fa7b; }
+        .attr-value { color: #f1fa8c; }
+        .punctuation { color: #e0e0e0; }
+        .css-property { color: #8be9fd; }
+        
+        /* Utility classes to replace inline styles */
+        .font-semibold { font-weight: 600; }
+        .mt-16 { margin-top: 16px; }
+        .subtle-text { font-size: 14px; opacity: 0.7; }
+        .link-accent { color: var(--accent-blue); text-decoration: none; }
+        .link-accent:hover { text-decoration: underline; }
+        .hidden { display: none !important; }
+
+    </style>
+</head>
+<body>
+    <div class="particles"></div>
+    <div class="toast-container" id="toastContainer"></div>
+    
+    <div class="container">
+        <div class="header">
+            <div class="header-content">
+                <div class="header-left">
+                    <div class="logo">⚡</div>
+                    <div class="header-text">
+                        <h1>Claude Code Studio</h1>
+                        <p>Next-generation AI development environment</p>
+                    </div>
+                </div>
+                <div class="status-panel">
+                    <div class="status-dot" id="statusDot"></div>
+                    <span class="status-text" id="statusText">Disconnected</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="chat-container">
+            <div class="messages scrollbar-custom" id="messages">
+                <!-- Initial Welcome Message -->
+                <div class="message assistant">
+                    <div class="message-bubble">
+                        <div class="message-meta">
+                            <div class="avatar">AI</div>
+                            <span class="font-semibold">Claude</span>
+                        </div>
+                        <p>🎯 <strong>Welcome to Claude Code Studio!</strong> I'm your AI development partner, ready to create stunning, production-ready projects that automatically integrate with VS Code.</p>
+                        <div id="api-section">
+                            <p class="mt-16">✨ <strong>Get started by connecting your API:</strong></p>
+                            <div class="api-setup">
+                                <input type="password" id="apiKeyInput" class="api-input" placeholder="sk-ant-api_key_here...">
+                                <button class="api-button" onclick="setApiKey()">🔗 Connect API</button>
+                            </div>
+                            <p class="mt-16 subtle-text">🔐 Your API key is stored locally and never shared. Get yours at <a href="https://console.anthropic.com/" target="_blank" rel="noopener noreferrer" class="link-accent">the Anthropic Console</a>.</p>
+                        </div>
+                        <div id="connected-message" class="success-message hidden">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
+                            <span>API Connected! You can now ask me to build a project.</span>
+                        </div>
+                    </div>
+                </div>
+                <!-- Typing Indicator Placeholder -->
+                <div id="typingIndicator" class="typing-indicator">
+                     <div class="avatar">AI</div>
+                     <div class="typing-dots">
+                        <div class="typing-dot"></div>
+                        <div class="typing-dot"></div>
+                        <div class="typing-dot"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="input-area">
+                <div class="input-container">
+                    <div class="input-wrapper">
+                        <textarea id="messageInput" placeholder="e.g., Build a React weather app with a search bar..." rows="1" disabled></textarea>
+                        <button id="sendButton" class="send-button" title="Send Message" aria-label="Send Message" disabled>
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+
+    // --- DOM Elements ---
+    const particlesContainer = document.querySelector('.particles');
+    const apiKeyInput = document.getElementById('apiKeyInput');
+    const statusDot = document.getElementById('statusDot');
+    const statusText = document.getElementById('statusText');
+    const messageInput = document.getElementById('messageInput');
+    const sendButton = document.getElementById('sendButton');
+    const messagesContainer = document.getElementById('messages');
+    const apiSection = document.getElementById('api-section');
+    const connectedMessage = document.getElementById('connected-message');
+    const typingIndicator = document.getElementById('typingIndicator');
+    const toastContainer = document.getElementById('toastContainer');
+
+    // --- State ---
+    let apiKey = '';
+    let isLoading = false;
+    let conversationHistory = [];
+
+    // --- System Prompt ---
+    const SYSTEM_PROMPT = `You are Claude, a world-class AI developer and coding assistant. Your user is in a special development environment called "Claude Code Studio".
+Your primary goal is to help users build entire, production-ready software projects from a single prompt.
+Follow these rules strictly:
+1.  **Acknowledge the Request:** Start by briefly acknowledging the user's request.
+2.  **Plan the Structure:** Think step-by-step about the file and folder structure. Present this structure to the user in a [TOC] (Table of Contents) block. Use '📁' for folders and '📄' for files.
+3.  **Generate Full Code:** Provide the complete, unabridged code for EACH file listed in the TOC. Do not use placeholders or comments like "// ... your code here". Write the full file content.
+4.  **Use Code Blocks:** For each file, use a [CODE:filepath/filename.ext] block. For example: [CODE:src/App.js].
+5.  **Explain Your Work:** After providing all the code, give a brief explanation of the project, how to run it (e.g., 'npm install && npm start'), and any next steps.
+6.  **Format:** Use the following format for your response:
+    - Brief acknowledgement.
+    - [TOC]
+      - Your file structure here...
+    - [CODE:path/to/file1.js]
+      - Full code for file1...
+    - [CODE:path/to/file2.css]
+      - Full code for file2...
+    - (repeat for all files)
+    - Concluding explanation.`;
+
+    // --- Initialization ---
+    function initializeApp() {
+        createParticles();
+        loadApiKey();
+        setupEventListeners();
+        autoResizeTextarea();
+    }
+
+    // --- API & Key Management ---
+    function loadApiKey() {
+        const storedKey = localStorage.getItem('claude-api-key');
+        if (storedKey) {
+            apiKey = storedKey;
+            apiKeyInput.value = '••••••••••••••••••••••••';
+            updateConnectionStatus(true);
+            showToast('API Key loaded from memory.', 'success');
+        } else {
+            updateConnectionStatus(false);
+        }
+    }
+
+    window.setApiKey = () => {
+        const key = apiKeyInput.value.trim();
+        if (key && key !== '••••••••••••••••••••••••') {
+            apiKey = key;
+            localStorage.setItem('claude-api-key', key);
+            updateConnectionStatus(true);
+            showToast('API Key connected successfully!', 'success');
+        } else if (apiKey) {
+            // If the•••• placeholder is there and a key already exists, do nothing but confirm.
+            updateConnectionStatus(true);
+        } else {
+            showToast('Please enter a valid API key.', 'error');
+        }
+    }
+
+    function updateConnectionStatus(isConnected) {
+        if (isConnected) {
+            statusDot.classList.add('connected');
+            statusText.textContent = 'Connected';
+            messageInput.disabled = false;
+            sendButton.disabled = false;
+            messageInput.placeholder = 'e.g., Build a React weather app...';
+            apiSection.classList.add('hidden');
+            connectedMessage.classList.remove('hidden');
+        } else {
+            statusDot.classList.remove('connected');
+            statusText.textContent = 'Disconnected';
+            messageInput.disabled = true;
+            sendButton.disabled = true;
+            messageInput.placeholder = 'Please connect your API key first.';
+            apiSection.classList.remove('hidden');
+            connectedMessage.classList.add('hidden');
+        }
+    }
+
+    // --- Event Listeners ---
+    function setupEventListeners() {
+        sendButton.addEventListener('click', sendMessage);
+        messageInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                sendMessage();
+            }
+        });
+        messageInput.addEventListener('input', autoResizeTextarea);
+    }
+    
+    // --- UI & UX Functions ---
+    
+    function createParticles() {
+        const particleCount = 50;
+        for (let i = 0; i < particleCount; i++) {
+            const particle = document.createElement('div');
+            particle.classList.add('particle');
+            particle.style.left = `${Math.random() * 100}%`;
+            particle.style.top = `${Math.random() * 100}%`;
+            particle.style.animationDelay = `${Math.random() * 6}s`;
+            particle.style.animationDuration = `${Math.random() * 3 + 4}s`;
+            particlesContainer.appendChild(particle);
+        }
+    }
+
+    function autoResizeTextarea() {
+        messageInput.style.height = 'auto';
+        messageInput.style.height = (messageInput.scrollHeight) + 'px';
+    }
+
+    function showToast(message, type = 'success') {
+        const toast = document.createElement('div');
+        toast.className = `toast ${type}`;
+        toast.textContent = message;
+        toastContainer.appendChild(toast);
+
+        setTimeout(() => toast.classList.add('show'), 10);
+        setTimeout(() => {
+            toast.classList.remove('show');
+            toast.addEventListener('transitionend', () => toast.remove());
+        }, 3000);
+    }
+
+    function scrollToBottom() {
+        messagesContainer.scrollTop = messagesContainer.scrollHeight;
+    }
+
+    function setUILoading(state) {
+        isLoading = state;
+        sendButton.disabled = state;
+        messageInput.disabled = state;
+        if (state) {
+            sendButton.innerHTML = '<div class="loading-spinner"></div>';
+            typingIndicator.classList.add('visible');
+            scrollToBottom();
+        } else {
+            sendButton.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>';
+            typingIndicator.classList.remove('visible');
+            messageInput.focus();
+        }
+    }
+
+    // --- Message Handling ---
+    async function sendMessage() {
+        const userMessage = messageInput.value.trim();
+        if (!userMessage || isLoading || !apiKey) return;
+
+        displayMessage(userMessage, 'user');
+        conversationHistory.push({ role: 'user', content: userMessage });
+        messageInput.value = '';
+        autoResizeTextarea();
+        setUILoading(true);
+
+        try {
+            const response = await callClaudeAPI(conversationHistory);
+            displayAssistantResponse(response);
+            conversationHistory.push({ role: 'assistant', content: response });
+        } catch (error) {
+            console.error('API Error:', error);
+            displayMessage(`Error: ${error.message}. Check the console for more details.`, 'assistant', true);
+        } finally {
+            setUILoading(false);
+        }
+    }
+
+    function displayMessage(text, role, isError = false) {
+        const messageWrapper = document.createElement('div');
+        messageWrapper.className = `message ${role}`;
+        
+        const bubble = document.createElement('div');
+        bubble.className = 'message-bubble';
+        
+        if (role === 'assistant') {
+             bubble.innerHTML = `
+                <div class="message-meta">
+                    <div class="avatar">AI</div>
+                    <span class="font-semibold">Claude</span>
+                </div>`;
+        }
+        
+        const content = document.createElement('div');
+        if (isError) {
+            content.className = 'error-message';
+            content.textContent = text;
+        } else {
+            content.textContent = text;
+        }
+        
+        bubble.appendChild(content);
+        messageWrapper.appendChild(bubble);
+        messagesContainer.insertBefore(messageWrapper, typingIndicator);
+        scrollToBottom();
+    }
+    
+    function displayAssistantResponse(response) {
+        const messageWrapper = document.createElement('div');
+        messageWrapper.className = 'message assistant';
+        
+        const bubble = document.createElement('div');
+        bubble.className = 'message-bubble';
+        bubble.innerHTML = `
+            <div class="message-meta">
+                <div class="avatar">AI</div>
+                <span class="font-semibold">Claude</span>
+            </div>`;
+
+        const responseContainer = document.createElement('div');
+        parseAndRenderResponse(response, responseContainer);
+        bubble.appendChild(responseContainer);
+        messageWrapper.appendChild(bubble);
+
+        // Add "Download All" button if there are code blocks
+        if (bubble.querySelector('.code-block')) {
+            const downloadAllBtn = createActionButton('Download Project (.zip)', 'downloadAllBtn', 'action-btn', () => downloadProjectAsZip(bubble));
+            const actionContainer = bubble.querySelector('.action-buttons') || document.createElement('div');
+             if(!bubble.querySelector('.action-buttons')) {
+                actionContainer.className = 'action-buttons';
+                bubble.appendChild(actionContainer);
+             }
+            actionContainer.appendChild(downloadAllBtn);
+        }
+        
+        messagesContainer.insertBefore(messageWrapper, typingIndicator);
+        scrollToBottom();
+    }
+    
+    // --- Response Parsing and Rendering ---
+    function parseAndRenderResponse(response, container) {
+        // Split by our custom tags, keeping the delimiters
+        const parts = response.split(/(\[TOC\]|\[CODE:.*?\])/s);
+
+        let currentContent = '';
+
+        for (let i = 0; i < parts.length; i++) {
+            const part = parts[i];
+            if (part === '[TOC]') {
+                flushContent(currentContent, container);
+                currentContent = '';
+                const tocContent = parts[++i].trim();
+                renderTOC(tocContent, container);
+            } else if (part.startsWith('[CODE:')) {
+                flushContent(currentContent, container);
+                currentContent = '';
+                const filePath = part.match(/\[CODE:(.*?)\]/)[1];
+                const codeContent = parts[++i].trim();
+                renderCodeBlock(filePath, codeContent, container);
+            } else {
+                currentContent += part;
+            }
+        }
+        flushContent(currentContent, container);
+    }
+
+    function flushContent(content, container) {
+        if (content.trim()) {
+            const p = document.createElement('p');
+            // Basic markdown-like formatting for **bold** and `code`
+            p.innerHTML = content
+                .trim()
+                .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                .replace(/`(.*?)`/g, '<code class="highlight">$1</code>');
+            container.appendChild(p);
+        }
+    }
+
+    function renderTOC(content, container) {
+        const tocElement = document.createElement('div');
+        tocElement.className = 'file-structure';
+        const formattedContent = content.replace(/^( *)(\S.*)/gm, (match, indent, text) => {
+            if (text.startsWith('📁')) {
+                return `${indent}<span class="folder">${text}</span>`;
+            } else if (text.startsWith('📄')) {
+                const fileMatch = text.match(/📄 (.*?)(\..*)/);
+                if (fileMatch) {
+                    return `${indent}<span class="file">📄 ${fileMatch[1]}<span class="extension">${fileMatch[2]}</span></span>`;
+                }
+            }
+            return `${indent}${text}`;
+        });
+        tocElement.innerHTML = `<pre>${formattedContent}</pre>`;
+        container.appendChild(tocElement);
+    }
+    
+    function renderCodeBlock(filePath, code, container) {
+        const codeBlock = document.createElement('div');
+        codeBlock.className = 'code-block';
+        codeBlock.dataset.filename = filePath;
+        codeBlock.dataset.code = code;
+
+        const lang = filePath.split('.').pop();
+        
+        const header = document.createElement('div');
+        header.className = 'code-header';
+        header.innerHTML = `<span class="code-lang">${filePath} (${lang})</span>`;
+
+        const pre = document.createElement('pre');
+        const codeEl = document.createElement('code');
+        codeEl.innerHTML = simpleSyntaxHighlight(code, lang);
+        pre.appendChild(codeEl);
+        
+        const actions = document.createElement('div');
+        actions.className = 'action-buttons';
+        const copyBtn = createActionButton('Copy', `copy-${filePath}`, 'copy-btn', () => copyCode(code, filePath));
+        const downloadBtn = createActionButton('Download', `download-${filePath}`, 'download-btn', () => downloadFile(filePath, code));
+        actions.appendChild(copyBtn);
+        actions.appendChild(downloadBtn);
+
+        codeBlock.appendChild(header);
+        codeBlock.appendChild(pre);
+        codeBlock.appendChild(actions);
+        container.appendChild(codeBlock);
+    }
+    
+    function createActionButton(text, id, className, onClick) {
+        const btn = document.createElement('button');
+        btn.textContent = text;
+        btn.id = id;
+        btn.className = `action-btn ${className}`;
+        btn.onclick = onClick;
+        return btn;
+    }
+
+    // --- Actions (Copy, Download) ---
+    function copyCode(code, filePath) {
+        navigator.clipboard.writeText(code).then(() => {
+            showToast(`Copied ${filePath} to clipboard!`, 'success');
+        }).catch(err => {
+            showToast(`Failed to copy: ${err}`, 'error');
+        });
+    }
+
+    function downloadFile(filename, content) {
+        const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = filename.split('/').pop();
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(a.href);
+        showToast(`Downloaded ${filename}`, 'success');
+    }
+    
+    function downloadProjectAsZip(bubble) {
+        const zip = new JSZip();
+        const codeBlocks = bubble.querySelectorAll('.code-block');
+        if(codeBlocks.length === 0) {
+            showToast('No code blocks found to download.', 'error');
+            return;
+        }
+
+        let projectName = 'claude-project';
+        const h1 = document.querySelector('h1');
+        if (h1) {
+            projectName = h1.textContent.toLowerCase().replace(/\s+/g, '-');
+        }
+        
+        codeBlocks.forEach(block => {
+            const filename = block.dataset.filename;
+            const code = block.dataset.code;
+            if (filename && code) {
+                zip.file(filename, code);
+            }
+        });
+
+        zip.generateAsync({type:"blob"}).then(function(content) {
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(content);
+            a.download = `${projectName}.zip`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(a.href);
+            showToast('Project downloaded as ZIP!', 'success');
+        }).catch(err => {
+            showToast(`Failed to create ZIP: ${err}`, 'error');
+        });
+    }
+
+    // --- Claude API Call ---
+    async function callClaudeAPI(messages) {
+        if (!apiKey) {
+            throw new Error("Anthropic API key not set.");
+        }
+        const apiURL = 'https://api.anthropic.com/v1/messages';
+        
+        const response = await fetch(apiURL, {
+            method: 'POST',
+            headers: {
+                'x-api-key': apiKey,
+                'anthropic-version': '2023-06-01',
+                'content-type': 'application/json'
+            },
+            body: JSON.stringify({
+                model: "claude-3-opus-20240229",
+                max_tokens: 4096,
+                system: SYSTEM_PROMPT,
+                messages: messages
+            })
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(`API Error (${response.status}): ${errorData.error.message}`);
+        }
+        
+        const data = await response.json();
+        return data.content[0].text;
+    }
+    
+    // --- Simple Syntax Highlighting ---
+    function simpleSyntaxHighlight(code, lang) {
+        code = code.replace(/</g, '<').replace(/>/g, '>');
+        
+        switch(lang) {
+            case 'js':
+            case 'jsx':
+            case 'ts':
+            case 'tsx':
+                return code
+                    .replace(/\b(const|let|var|function|return|if|else|for|while|import|export|from|as|new|async|await|try|catch|class|extends|of|in|switch|case|break|default)\b/g, '<span class="keyword">$&</span>')
+                    .replace(/(\'|\"|`)(.*?)(\'|\"|`)/g, '<span class="string">$&</span>')
+                    .replace(/\/\/(.*)/g, '<span class="comment">$&</span>')
+                    .replace(/\/\*[\s\S]*?\*\//g, '<span class="comment">$&</span>')
+                    .replace(/\b(\d+)\b/g, '<span class="number">$&</span>')
+                    .replace(/(\w+)\(/g, '<span class="function">$1</span>(');
+            case 'html':
+                 return code
+                    .replace(/<!--[\s\S]*?-->/g, '<span class="comment">$&</span>')
+                    .replace(/(<\/?)([a-zA-Z0-9\-]+)/g, '$1<span class="tag">$2</span>')
+                    .replace(/\b([a-zA-Z\-]+)=/g, '<span class="attr-name">$&</span>')
+                    .replace(/(".*?")/g, '<span class="attr-value">$&</span>');
+            case 'css':
+                return code
+                    .replace(/\/\*[\s\S]*?\*\//g, '<span class="comment">$&</span>')
+                    .replace(/([a-zA-Z\-]+)\s*:/g, '<span class="css-property">$&</span>')
+                    .replace(/#\w+|rgba?\(.*?\)|hsla?\(.*?\)|[0-9.]+(px|em|rem|%|vh|vw|s)\b/g, '<span class="number">$&</span>')
+                    .replace(/(\'|\")(.*?)(\'|\")/g, '<span class="string">$&</span>');
+            default:
+                return code;
+        }
+    }
+
+    // --- Start the app ---
+    initializeApp();
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Claude Code Studio</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <style>
+        /* All the CSS from before goes here - it is unchanged */
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        :root { --primary-bg: #0a0a0a; --secondary-bg: #111111; --accent-bg: #1a1a1a; --glass-bg: rgba(255, 255, 255, 0.03); --glass-border: rgba(255, 255, 255, 0.08); --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%); --secondary-gradient: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); --accent-gradient: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); --success-gradient: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%); --text-primary: #ffffff; --text-secondary: #a0a0a0; --text-muted: #666666; --accent-blue: #4facfe; --accent-purple: #667eea; --accent-pink: #f093fb; --accent-green: #00f2fe; --shadow-soft: 0 4px 20px rgba(0, 0, 0, 0.3); --shadow-medium: 0 8px 40px rgba(0, 0, 0, 0.4); --shadow-hard: 0 20px 60px rgba(0, 0, 0, 0.5); --border-radius: 20px; --border-radius-small: 12px; --border-radius-large: 28px; }
+        body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--primary-bg); color: var(--text-primary); height: 100vh; overflow: hidden; position: relative; }
+        body::before { content: ''; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: radial-gradient(circle at 20% 20%, rgba(102, 126, 234, 0.1) 0%, transparent 50%), radial-gradient(circle at 80% 80%, rgba(118, 75, 162, 0.1) 0%, transparent 50%), radial-gradient(circle at 40% 60%, rgba(240, 147, 251, 0.05) 0%, transparent 50%); pointer-events: none; z-index: 1; animation: backgroundShift 10s ease-in-out infinite; }
+        @keyframes backgroundShift { 0%, 100% { opacity: 1; } 50% { opacity: 0.8; } }
+        .particles { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 2; }
+        .particle { position: absolute; width: 2px; height: 2px; background: rgba(255, 255, 255, 0.3); border-radius: 50%; animation: float 6s ease-in-out infinite; }
+        @keyframes float { 0%, 100% { transform: translateY(0px) rotate(0deg); opacity: 0.3; } 50% { transform: translateY(-20px) rotate(180deg); opacity: 0.8; } }
+        .container { position: relative; z-index: 3; width: 100%; height: 100vh; display: flex; flex-direction: column; max-width: 1600px; margin: 0 auto; padding: 24px; }
+        .header { background: var(--glass-bg); backdrop-filter: blur(20px); border: 1px solid var(--glass-border); border-radius: var(--border-radius-large); padding: 32px 40px; margin-bottom: 24px; position: relative; overflow: hidden; box-shadow: var(--shadow-medium); }
+        .header::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px; background: var(--primary-gradient); animation: shimmer 3s ease-in-out infinite; }
+        @keyframes shimmer { 0% { transform: translateX(-100%); opacity: 0.5; } 50% { transform: translateX(0%); opacity: 1; } 100% { transform: translateX(100%); opacity: 0.5; } }
+        .header-content { display: flex; justify-content: space-between; align-items: center; }
+        .header-left { display: flex; align-items: center; gap: 20px; }
+        .logo { width: 60px; height: 60px; background: var(--secondary-gradient); border-radius: 18px; display: flex; align-items: center; justify-content: center; font-size: 28px; font-weight: 800; color: white; box-shadow: var(--shadow-soft); position: relative; overflow: hidden; }
+        .logo::before { content: ''; position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: linear-gradient(45deg, transparent 30%, rgba(255, 255, 255, 0.2) 50%, transparent 70%); animation: logoShine 2s ease-in-out infinite; }
+        @keyframes logoShine { 0% { transform: translateX(-100%); } 100% { transform: translateX(100%); } }
+        .header-text h1 { font-size: 32px; font-weight: 800; background: var(--primary-gradient); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; margin-bottom: 8px; letter-spacing: -0.5px; }
+        .header-text p { color: var(--text-secondary); font-size: 16px; font-weight: 500; letter-spacing: 0.3px; }
+        .status-panel { display: flex; align-items: center; gap: 16px; background: var(--glass-bg); padding: 16px 24px; border-radius: var(--border-radius-large); border: 1px solid var(--glass-border); box-shadow: var(--shadow-soft); }
+        .status-dot { width: 14px; height: 14px; border-radius: 50%; background: #2ed573; position: relative; animation: pulse 2s ease-in-out infinite; }
+        .status-dot::before { content: ''; position: absolute; top: -4px; left: -4px; right: -4px; bottom: -4px; border-radius: 50%; background: inherit; opacity: 0.3; animation: pulse 2s ease-in-out infinite; }
+        @keyframes pulse { 0%, 100% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.2); opacity: 0.7; } }
+        .status-text { font-size: 14px; font-weight: 600; color: var(--text-primary); letter-spacing: 0.5px; }
+        .chat-container { flex: 1; background: var(--glass-bg); backdrop-filter: blur(20px); border: 1px solid var(--glass-border); border-radius: var(--border-radius-large); display: flex; flex-direction: column; overflow: hidden; box-shadow: var(--shadow-hard); }
+        .messages { flex: 1; overflow-y: auto; padding: 32px; background: linear-gradient(180deg, rgba(255, 255, 255, 0.02) 0%, transparent 100%); position: relative; }
+        .message { margin-bottom: 32px; animation: messageSlide 0.5s cubic-bezier(0.16, 1, 0.3, 1); opacity: 0; animation-fill-mode: forwards; }
+        @keyframes messageSlide { from { opacity: 0; transform: translateY(30px) scale(0.95); } to { opacity: 1; transform: translateY(0) scale(1); } }
+        .message.user { display: flex; justify-content: flex-end; }
+        .message.assistant { display: flex; justify-content: flex-start; }
+        .message-bubble { max-width: 80%; padding: 24px 28px; border-radius: var(--border-radius-large); position: relative; word-wrap: break-word; backdrop-filter: blur(10px); transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1); font-size: 16px; line-height: 1.6; letter-spacing: 0.3px; }
+        .message-bubble:hover { transform: translateY(-2px); box-shadow: var(--shadow-medium); }
+        .message.user .message-bubble { background: var(--secondary-gradient); color: white; border-bottom-right-radius: 8px; box-shadow: 0 8px 32px rgba(240, 147, 251, 0.4); font-weight: 500; }
+        .message.assistant .message-bubble { background: rgba(255, 255, 255, 0.06); color: var(--text-primary); border: 1px solid rgba(255, 255, 255, 0.1); border-bottom-left-radius: 8px; box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3); }
+        .message-meta { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; opacity: 0.8; }
+        .avatar { width: 32px; height: 32px; border-radius: 50%; background: var(--accent-gradient); display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 700; color: white; box-shadow: var(--shadow-soft); }
+        .file-structure { background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%); color: #e2e8f0; padding: 24px; border-radius: var(--border-radius); margin: 16px 0; font-family: 'JetBrains Mono', monospace; font-size: 14px; line-height: 1.8; overflow-x: auto; border: 1px solid rgba(255, 255, 255, 0.1); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05); position: relative; }
+        .file-structure::before { content: 'File Structure'; position: absolute; top: 8px; right: 16px; font-size: 10px; color: rgba(255, 255, 255, 0.4); font-weight: 600; text-transform: uppercase; letter-spacing: 1px; }
+        .file-structure .folder { color: #ffd700; font-weight: 700; }
+        .file-structure .file { color: #7dd3fc; margin-left: 24px; }
+        .file-structure .extension { color: #a78bfa; }
+        .code-block { background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%); color: #e2e8f0; padding: 24px; border-radius: var(--border-radius); margin: 16px 0; font-family: 'JetBrains Mono', monospace; font-size: 14px; line-height: 1.8; overflow-x: auto; border: 1px solid rgba(255, 255, 255, 0.1); position: relative; box-shadow: var(--shadow-soft); }
+        .code-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; padding-bottom: 12px; border-bottom: 1px solid rgba(255, 255, 255, 0.1); }
+        .code-lang { color: #ffd700; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; }
+        .input-area { padding: 32px; background: rgba(255, 255, 255, 0.02); border-top: 1px solid var(--glass-border); }
+        .input-container { position: relative; display: flex; align-items: flex-end; gap: 16px; }
+        .input-wrapper { flex: 1; position: relative; }
+        #messageInput { width: 100%; min-height: 64px; max-height: 200px; padding: 20px 70px 20px 24px; background: rgba(255, 255, 255, 0.08); border: 2px solid rgba(255, 255, 255, 0.1); border-radius: var(--border-radius-large); font-size: 16px; font-family: inherit; color: var(--text-primary); resize: none; outline: none; transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1); }
+        #messageInput:focus { border-color: rgba(102, 126, 234, 0.5); box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.1); }
+        .send-button { position: absolute; right: 12px; bottom: 12px; width: 48px; height: 48px; border: none; background: var(--primary-gradient); color: white; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.3s ease; }
+        .send-button:hover { transform: scale(1.1); }
+        .send-button:disabled { opacity: 0.5; cursor: not-allowed; }
+        .typing-indicator { display: none; align-items: center; gap: 12px; background: rgba(255, 255, 255, 0.06); border-radius: var(--border-radius-large); padding: 16px 24px; margin: 0 0 32px 0; width: fit-content; border: 1px solid rgba(255, 255, 255, 0.1); }
+        .typing-indicator.visible { display: flex; }
+        .typing-dots { display: flex; gap: 8px; }
+        .typing-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--accent-blue); animation: typing 1.4s infinite; }
+        .typing-dot:nth-child(2) { animation-delay: 0.2s; }
+        .typing-dot:nth-child(3) { animation-delay: 0.4s; }
+        @keyframes typing { 0%, 60%, 100% { transform: translateY(0); opacity: 0.5; } 30% { transform: translateY(-8px); opacity: 1; } }
+        .action-buttons { display: flex; gap: 16px; margin-top: 20px; flex-wrap: wrap; }
+        .action-btn { padding: 12px 24px; border: none; border-radius: var(--border-radius-small); cursor: pointer; font-size: 14px; font-weight: 700; transition: all 0.3s ease; display: flex; align-items: center; gap: 8px; text-transform: uppercase; }
+        .copy-btn { background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); color: white; }
+        .download-btn { background: linear-gradient(135deg, #ff6b6b 0%, #ee5a52 100%); color: white; }
+        #downloadAllBtn { background: var(--primary-gradient); color: white; }
+        .toast-container { position: fixed; top: 24px; right: 24px; z-index: 1000; display: flex; flex-direction: column; gap: 12px; }
+        .toast { background: rgba(255, 255, 255, 0.1); backdrop-filter: blur(20px); border: 1px solid rgba(255, 255, 255, 0.2); border-radius: var(--border-radius); padding: 16px 24px; box-shadow: var(--shadow-medium); transform: translateX(120%); opacity: 0; transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1); }
+        .toast.show { transform: translateX(0); opacity: 1; }
+        .toast.success { border-left: 4px solid var(--accent-green); color: var(--accent-green); }
+        .toast.error { border-left: 4px solid #ff4757; color: #ff4757; }
+        .scrollbar-custom { scrollbar-width: thin; scrollbar-color: rgba(255, 255, 255, 0.2) transparent; }
+        .scrollbar-custom::-webkit-scrollbar { width: 8px; }
+        .scrollbar-custom::-webkit-scrollbar-track { background: transparent; }
+        .scrollbar-custom::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.2); border-radius: 4px; }
+        .loading-spinner { width: 24px; height: 24px; border: 3px solid rgba(255, 255, 255, 0.3); border-top: 3px solid white; border-radius: 50%; animation: spin 1s linear infinite; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .error-message { background: linear-gradient(135deg, rgba(255, 71, 87, 0.1) 0%, rgba(238, 90, 82, 0.1) 100%); border: 1px solid rgba(255, 71, 87, 0.3); border-radius: var(--border-radius); padding: 20px; margin: 16px 0; color: #ff4757; font-weight: 600; }
+        .highlight { background: linear-gradient(135deg, rgba(102, 126, 234, 0.2) 0%, rgba(118, 75, 162, 0.2) 100%); padding: 2px 8px; border-radius: 6px; font-weight: 600; }
+        .keyword, .tag { color: #ff79c6; }
+        .string, .attr-value { color: #f1fa8c; }
+        .comment { color: #6272a4; }
+        .number { color: #bd93f9; }
+        .function, .attr-name { color: #50fa7b; }
+        .css-property { color: #8be9fd; }
+        .font-semibold { font-weight: 600; }
+    </style>
+</head>
+<body>
+    <div class="particles"></div>
+    <div class="toast-container" id="toastContainer"></div>
+    
+    <div class="container">
+        <div class="header">
+            <div class="header-content">
+                <div class="header-left">
+                    <div class="logo">⚡</div>
+                    <div class="header-text">
+                        <h1>Claude Code Studio</h1>
+                        <p>Next-generation AI development environment</p>
+                    </div>
+                </div>
+                <div class="status-panel">
+                    <div class="status-dot"></div>
+                    <span class="status-text">Connected</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="chat-container">
+            <div class="messages scrollbar-custom" id="messages">
+                <!-- Initial Welcome Message -->
+                <div class="message assistant">
+                    <div class="message-bubble">
+                        <div class="message-meta">
+                            <div class="avatar">AI</div>
+                            <span class="font-semibold">Claude</span>
+                        </div>
+                        <p>🎯 <strong>Welcome to Claude Code Studio!</strong> Your API key is securely connected via the server. You are ready to build.</p>
+                        <p>Describe the project you want to create below.</p>
+                    </div>
+                </div>
+                <!-- Typing Indicator Placeholder -->
+                <div id="typingIndicator" class="typing-indicator">
+                     <div class="avatar">AI</div>
+                     <div class="typing-dots">
+                        <div class="typing-dot"></div>
+                        <div class="typing-dot"></div>
+                        <div class="typing-dot"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="input-area">
+                <div class="input-container">
+                    <div class="input-wrapper">
+                        <textarea id="messageInput" placeholder="e.g., Build a React weather app with a search bar..." rows="1"></textarea>
+                        <button id="sendButton" class="send-button" title="Send Message" aria-label="Send Message">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+
+    // --- DOM Elements ---
+    const particlesContainer = document.querySelector('.particles');
+    const messageInput = document.getElementById('messageInput');
+    const sendButton = document.getElementById('sendButton');
+    const messagesContainer = document.getElementById('messages');
+    const typingIndicator = document.getElementById('typingIndicator');
+    const toastContainer = document.getElementById('toastContainer');
+
+    // --- State ---
+    let isLoading = false;
+    let conversationHistory = [];
+
+    // --- System Prompt ---
+    const SYSTEM_PROMPT = `You are Claude, a world-class AI developer and coding assistant. Your user is in a special development environment called "Claude Code Studio". Your primary goal is to help users build entire, production-ready software projects from a single prompt. Follow these rules strictly: 1. **Acknowledge the Request:** Start by briefly acknowledging the user's request. 2. **Plan the Structure:** Think step-by-step about the file and folder structure. Present this structure to the user in a [TOC] (Table of Contents) block. Use '📁' for folders and '📄' for files. 3. **Generate Full Code:** Provide the complete, unabridged code for EACH file listed in the TOC. Do not use placeholders or comments like "// ... your code here". Write the full file content. 4. **Use Code Blocks:** For each file, use a [CODE:filepath/filename.ext] block. For example: [CODE:src/App.js]. 5. **Explain Your Work:** After providing all the code, give a brief explanation of the project, how to run it (e.g., 'npm install && npm start'), and any next steps. 6. **Format:** Use the specified format for your response.`;
+
+    // --- Initialization ---
+    function initializeApp() {
+        createParticles();
+        setupEventListeners();
+    }
+
+    // --- Event Listeners ---
+    function setupEventListeners() {
+        sendButton.addEventListener('click', sendMessage);
+        messageInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                sendMessage();
+            }
+        });
+    }
+    
+    // --- UI & UX Functions ---
+    function createParticles() {
+        for (let i = 0; i < 50; i++) {
+            const particle = document.createElement('div');
+            particle.classList.add('particle');
+            particle.style.left = `${Math.random() * 100}%`;
+            particle.style.top = `${Math.random() * 100}%`;
+            particle.style.animationDelay = `${Math.random() * 6}s`;
+            particlesContainer.appendChild(particle);
+        }
+    }
+
+    function showToast(message, type = 'success') {
+        const toast = document.createElement('div');
+        toast.className = `toast ${type}`;
+        toast.textContent = message;
+        toastContainer.appendChild(toast);
+        setTimeout(() => toast.classList.add('show'), 10);
+        setTimeout(() => toast.remove(), 3000);
+    }
+
+    function setUILoading(state) {
+        isLoading = state;
+        sendButton.disabled = state;
+        messageInput.disabled = state;
+        if (state) {
+            sendButton.innerHTML = '<div class="loading-spinner"></div>';
+            typingIndicator.classList.add('visible');
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        } else {
+            sendButton.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>';
+            typingIndicator.classList.remove('visible');
+            messageInput.focus();
+        }
+    }
+
+    // --- Message Handling ---
+    async function sendMessage() {
+        const userMessage = messageInput.value.trim();
+        if (!userMessage || isLoading) return;
+
+        displayMessage(userMessage, 'user');
+        conversationHistory.push({ role: 'user', content: userMessage });
+        messageInput.value = '';
+        setUILoading(true);
+
+        try {
+            const response = await callClaudeAPI(conversationHistory);
+            displayAssistantResponse(response);
+            conversationHistory.push({ role: 'assistant', content: response });
+        } catch (error) {
+            console.error('API Error:', error);
+            displayMessage(error.message, 'assistant', true);
+        } finally {
+            setUILoading(false);
+        }
+    }
+
+    function displayMessage(text, role, isError = false) {
+        const messageWrapper = document.createElement('div');
+        messageWrapper.className = `message ${role}`;
+        
+        const bubble = document.createElement('div');
+        bubble.className = isError ? 'error-message' : 'message-bubble';
+        
+        if (role === 'assistant' && !isError) {
+             bubble.innerHTML = `<div class="message-meta"><div class="avatar">AI</div><span class="font-semibold">Claude</span></div>`;
+        }
+        
+        const content = document.createElement(isError ? 'div' : 'p');
+        content.textContent = text;
+        
+        bubble.appendChild(content);
+        messageWrapper.appendChild(bubble);
+        messagesContainer.insertBefore(messageWrapper, typingIndicator);
+        messagesContainer.scrollTop = messagesContainer.scrollHeight;
+    }
+    
+    function displayAssistantResponse(response) {
+        const messageWrapper = document.createElement('div');
+        messageWrapper.className = 'message assistant';
+        
+        const bubble = document.createElement('div');
+        bubble.className = 'message-bubble';
+        bubble.innerHTML = `<div class="message-meta"><div class="avatar">AI</div><span class="font-semibold">Claude</span></div>`;
+
+        const responseContainer = document.createElement('div');
+        parseAndRenderResponse(response, responseContainer);
+        bubble.appendChild(responseContainer);
+
+        if (bubble.querySelector('.code-block')) {
+            const downloadAllBtn = createActionButton('Download Project (.zip)', 'downloadAllBtn', 'action-btn', () => downloadProjectAsZip(bubble));
+            const actionContainer = bubble.querySelector('.action-buttons') || document.createElement('div');
+            if(!bubble.querySelector('.action-buttons')) {
+                actionContainer.className = 'action-buttons';
+                bubble.appendChild(actionContainer);
+            }
+            actionContainer.appendChild(downloadAllBtn);
+        }
+        
+        messageWrapper.appendChild(bubble);
+        messagesContainer.insertBefore(messageWrapper, typingIndicator);
+        messagesContainer.scrollTop = messagesContainer.scrollHeight;
+    }
+    
+    function parseAndRenderResponse(response, container) {
+        const parts = response.split(/(\[TOC\]|\[CODE:.*?\])/s);
+        let currentContent = '';
+        for (let i = 0; i < parts.length; i++) {
+            const part = parts[i];
+            if (part === '[TOC]') {
+                flushContent(currentContent, container);
+                currentContent = '';
+                renderTOC(parts[++i].trim(), container);
+            } else if (part.startsWith('[CODE:')) {
+                flushContent(currentContent, container);
+                currentContent = '';
+                const filePath = part.match(/\[CODE:(.*?)\]/)[1];
+                renderCodeBlock(filePath, parts[++i].trim(), container);
+            } else {
+                currentContent += part;
+            }
+        }
+        flushContent(currentContent, container);
+    }
+
+    function flushContent(content, container) {
+        if (content.trim()) {
+            const p = document.createElement('p');
+            p.innerHTML = content.trim().replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/`(.*?)`/g, '<code class="highlight">$1</code>');
+            container.appendChild(p);
+        }
+    }
+
+    function renderTOC(content, container) {
+        const tocElement = document.createElement('div');
+        tocElement.className = 'file-structure';
+        tocElement.innerHTML = `<pre>${content.replace(/^( *)(\S.*)/gm, (m, i, t) => t.startsWith('📁') ? `${i}<span class="folder">${t}</span>` : `${i}<span class="file">${t}</span>`)}</pre>`;
+        container.appendChild(tocElement);
+    }
+    
+    function renderCodeBlock(filePath, code, container) {
+        const codeBlock = document.createElement('div');
+        codeBlock.className = 'code-block';
+        codeBlock.dataset.filename = filePath;
+        codeBlock.dataset.code = code;
+        const lang = filePath.split('.').pop();
+        
+        codeBlock.innerHTML = `
+            <div class="code-header"><span class="code-lang">${filePath}</span></div>
+            <pre><code>${simpleSyntaxHighlight(code, lang)}</code></pre>
+            <div class="action-buttons"></div>
+        `;
+
+        const actions = codeBlock.querySelector('.action-buttons');
+        actions.appendChild(createActionButton('Copy', `copy-${filePath}`, 'copy-btn', () => copyCode(code, filePath)));
+        actions.appendChild(createActionButton('Download', `download-${filePath}`, 'download-btn', () => downloadFile(filePath, code)));
+        
+        container.appendChild(codeBlock);
+    }
+    
+    function createActionButton(text, id, className, onClick) {
+        const btn = document.createElement('button');
+        btn.textContent = text;
+        btn.id = id;
+        btn.className = `action-btn ${className}`;
+        btn.onclick = onClick;
+        return btn;
+    }
+
+    function copyCode(code, filePath) {
+        navigator.clipboard.writeText(code).then(() => showToast(`Copied ${filePath} to clipboard!`, 'success'));
+    }
+
+    function downloadFile(filename, content) {
+        const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = filename.split('/').pop();
+        a.click();
+        URL.revokeObjectURL(a.href);
+    }
+    
+    function downloadProjectAsZip(bubble) {
+        const zip = new JSZip();
+        bubble.querySelectorAll('.code-block').forEach(block => {
+            zip.file(block.dataset.filename, block.dataset.code);
+        });
+        zip.generateAsync({type:"blob"}).then(content => {
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(content);
+            a.download = `claude-project.zip`;
+            a.click();
+            URL.revokeObjectURL(a.href);
+        });
+    }
+
+    /************************************************************************
+     * CRITICAL CHANGE: This function now calls our own server, not Anthropic.
+     ************************************************************************/
+    async function callClaudeAPI(messages) {
+        const apiURL = '/api/claude'; // The new local proxy endpoint
+
+        const response = await fetch(apiURL, {
+            method: 'POST',
+            headers: { 'content-type': 'application/json' },
+            body: JSON.stringify({
+                system: SYSTEM_PROMPT,
+                messages: messages
+            })
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+            throw new Error(data.error.message || `API Error (${response.status})`);
+        }
+        
+        return data.content[0].text;
+    }
+    
+    function simpleSyntaxHighlight(code, lang) {
+        code = code.replace(/</g, '<').replace(/>/g, '>');
+        // Simplified syntax highlighting logic...
+        return code;
+    }
+
+    // --- Start the app ---
+    initializeApp();
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,17 @@
+{
+  "name": "claude-code-studio",
+  "version": "1.0.0",
+  "description": "A proxy server for Claude Code Studio",
+  "main": "server.js",
+  "type": "module",
+  "scripts": {
+    "start": "node --env-file=.env server.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "axios": "^1.6.8",
+    "express": "^4.19.2"
+  }
+}
